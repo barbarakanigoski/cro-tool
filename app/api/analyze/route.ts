@@ -166,8 +166,10 @@ export async function POST(req: NextRequest) {
         const text = await jinaRes.text()
         pageContent = text.slice(0, 8000)
       }
-    } catch {
-      pageContent = '[Não foi possível carregar o conteúdo da página automaticamente]'
+   } catch {
+      return NextResponse.json({ 
+        error: 'Não foi possível acessar esta página. O site pode estar bloqueando análises automáticas ou estar fora do ar.' 
+      }, { status: 422 })
     }
 
     // 2. Fetch screenshot via thum.io (free, no auth needed)
