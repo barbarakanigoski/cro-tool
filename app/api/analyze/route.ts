@@ -88,13 +88,14 @@ Foco: above the fold, fricção no funil, confiança e objeções, mobile experi
 ---
 
 ## 1. SEO
-[análise completa: problemas críticos, boas práticas, 3–5 recomendações priorizadas]
+[análise completa]
 
 ## 2. Copy & Conteúdo
-[headline com sugestão de melhoria, USP, diagnóstico dos CTAs, 3–5 recomendações]
+[análise completa]
 
 ## 3. UX & Heurísticas de Nielsen
-[navegação, fluxo, avaliação das 10 heurísticas com boa/média/ruim + justificativa]
+[navegação, fluxo, avaliação das 10 heurísticas — agora com base VISUAL da página]
+**Análise Visual:** Descreva o que você vê na screenshot: layout, cores, hierarquia visual, botões, espaçamento, mobile-friendliness aparente.
 
 ## 4. Psicologia de Conversão
 | Viés | Presente | Como está / Como deveria estar |
@@ -102,10 +103,10 @@ Foco: above the fold, fricção no funil, confiança e objeções, mobile experi
 [todos os 20 vieses]
 
 ## 5. Leis de UX
-[cada lei: avaliação + justificativa com elementos reais da página + recomendação]
+[cada lei com base visual]
 
 ## 6. Performance (PageSpeed)
-[métricas ou estimativa + top 3 problemas + impacto estimado na conversão]
+[métricas ou estimativa]
 
 ## 7. 🚀 Oportunidades de CRO
 
@@ -130,8 +131,9 @@ Foco: above the fold, fricção no funil, confiança e objeções, mobile experi
 ## Regras de Ouro
 - Seja direto e cirúrgico — sem rodeios, sem elogios genéricos
 - Priorize impacto — o que move o ponteiro de conversão primeiro
-- Use dados reais da página, não suposições
-- Score honesto — não infle notas para agradar`
+- Use dados reais da página e da screenshot, não suposições
+- Score honesto — não infle notas para agradar
+- Na seção UX, SEMPRE mencione o que você viu visualmente na screenshot`
 
 export async function POST(req: NextRequest) {
   try {
@@ -141,7 +143,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'URL é obrigatória' }, { status: 400 })
     }
 
-    // 1. Fetch page content via Jina Reader (free, no auth needed)
+    // 1. Fetch page content via Jina Reader
     let pageContent = ''
     try {
       const jinaUrl = `https://r.jina.ai/${url}`
@@ -151,14 +153,28 @@ export async function POST(req: NextRequest) {
       })
       if (jinaRes.ok) {
         const text = await jinaRes.text()
-        // Limit to first 8000 chars to keep API costs low
         pageContent = text.slice(0, 8000)
       }
     } catch {
       pageContent = '[Não foi possível carregar o conteúdo da página automaticamente]'
     }
 
-    // 2. Fetch PageSpeed data if Google API key is configured
+    // 2. Fetch screenshot via thum.io (free, no auth needed)
+    let screenshotBase64 = ''
+    try {
+      const screenshotUrl = `https://image.thum.io/get/width/1280/crop/800/png/${url}`
+      const screenshotRes = await fetch(screenshotUrl, {
+        signal: AbortSignal.timeout(15000),
+      })
+      if (screenshotRes.ok) {
+        const arrayBuffer = await screenshotRes.arrayBuffer()
+        screenshotBase64 = Buffer.from(arrayBuffer).toString('base64')
+      }
+    } catch {
+      // Continue without screenshot
+    }
+
+    // 3. Fetch PageSpeed data
     let pagespeedSection = ''
     if (pagespeedData) {
       pagespeedSection = `\n\n## Dados PageSpeed Insights\n${JSON.stringify(pagespeedData, null, 2)}`
@@ -186,10 +202,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Call Anthropic API
+    // 4. Call Anthropic API
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-    const userMessage = `Analise esta página para CRO:
+    const textContent = `Analise esta página para CRO:
 
 **URL:** ${url}
 
@@ -197,13 +213,30 @@ export async function POST(req: NextRequest) {
 ${pageContent}
 ${pagespeedSection}
 
+${screenshotBase64 ? 'Uma screenshot da página está anexada. Use-a para análise visual de UX, layout, botões, hierarquia e mobile.' : 'Screenshot não disponível — baseie a análise no conteúdo textual.'}
+
 Execute a análise completa seguindo o formato obrigatório do relatório.`
+
+    // Build message content — include screenshot if available
+    const messageContent: Anthropic.MessageParam['content'] = screenshotBase64
+      ? [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: 'image/png',
+              data: screenshotBase64,
+            },
+          },
+          { type: 'text', text: textContent },
+        ]
+      : textContent
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 8192,
       system: CRO_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userMessage }],
+      messages: [{ role: 'user', content: messageContent }],
     })
 
     const report = response.content[0].type === 'text' ? response.content[0].text : ''
