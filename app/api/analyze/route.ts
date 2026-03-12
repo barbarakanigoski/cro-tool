@@ -155,22 +155,29 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Fetch page content via Jina Reader
-    let pageContent = ''
-    try {
-      const jinaUrl = `https://r.jina.ai/${url}`
-      const jinaRes = await fetch(jinaUrl, {
-        headers: { 'Accept': 'text/plain' },
-        signal: AbortSignal.timeout(20000),
-      })
-      if (jinaRes.ok) {
-        const text = await jinaRes.text()
-        pageContent = text.slice(0, 8000)
-      }
-   } catch {
-      return NextResponse.json({ 
-        error: 'Não foi possível acessar esta página. O site pode estar bloqueando análises automáticas ou estar fora do ar.' 
-      }, { status: 422 })
-    }
+let pageContent = ''
+try {
+  const jinaUrl = `https://r.jina.ai/${url}`
+  const jinaRes = await fetch(jinaUrl, {
+    headers: { 'Accept': 'text/plain' },
+    signal: AbortSignal.timeout(20000),
+  })
+  if (jinaRes.ok) {
+    const text = await jinaRes.text()
+    pageContent = text.slice(0, 8000)
+  }
+} catch {
+  return NextResponse.json({ 
+    error: 'Não foi possível acessar esta página. O site pode estar bloqueando análises automáticas ou estar fora do ar.' 
+  }, { status: 422 })
+}
+
+// Bloqueia se conteúdo insuficiente
+if (!pageContent || pageContent.length < 200) {
+  return NextResponse.json({ 
+    error: 'Conteúdo insuficiente para análise. O site pode estar bloqueando o acesso ou estar fora do ar.' 
+  }, { status: 422 })
+}
 
     // 2. Fetch screenshot via thum.io (free, no auth needed)
     let screenshotBase64 = ''
