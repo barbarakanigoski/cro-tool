@@ -4,6 +4,16 @@ import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
+const FEATURES = [
+  { icon: '🔍', label: 'SEO' },
+  { icon: '✍️', label: 'Copy' },
+  { icon: '🎨', label: 'UX' },
+  { icon: '🧠', label: 'Psicologia' },
+  { icon: '📐', label: 'Leis UX' },
+  { icon: '⚡', label: 'PageSpeed' },
+  { icon: '🎯', label: 'Quick Wins' },
+]
+
 export default function Home() {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
@@ -47,132 +57,141 @@ export default function Home() {
     navigator.clipboard.writeText(report)
   }
 
+  const showHero = !report && !loading && !error
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white text-sm font-bold">CRO</span>
+    <div className="app-shell">
+
+      {/* ── Header ── */}
+      <header className="app-header">
+        <div className="header-inner">
+          <div className="logo-group">
+            <div className="logo-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                <circle cx="11" cy="11" r="7" stroke="white" strokeWidth="2.2"/>
+                <path d="M20 20l-3-3" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
+              </svg>
             </div>
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">CRO Analyzer</h1>
-              <p className="text-xs text-gray-500">Análise de Conversion Rate Optimization</p>
-            </div>
+            <span className="logo-name">CRO Analyzer</span>
           </div>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-10">
-        {/* Search box */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
-          <h2 className="text-lg font-medium text-gray-800 mb-4">
-            Cole a URL da página que deseja analisar
-          </h2>
-          <div className="flex gap-3">
+      <main className="app-main">
+
+        {/* ── Hero ── */}
+        {showHero && (
+          <section className="hero">
+            <div className="hero-eyebrow">
+              <span className="hero-eyebrow-dot" />
+              Powered by Claude AI
+            </div>
+            <h1 className="hero-title">
+              Análise CRO completa.<br />Em segundos.
+            </h1>
+            <p className="hero-subtitle">
+              Cole a URL de qualquer página e receba um diagnóstico detalhado de conversão — gerado por inteligência artificial.
+            </p>
+            <div className="feature-row">
+              {FEATURES.map(f => (
+                <div key={f.label} className="feature-chip">
+                  <span className="chip-icon">{f.icon}</span>
+                  {f.label}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Search card ── */}
+        <div className={`search-card${report || loading || error ? ' search-card--compact' : ''}`}>
+          {(report || loading || error) && (
+            <p className="search-label">Nova análise</p>
+          )}
+          <div className="search-row">
             <input
               type="url"
               value={url}
               onChange={e => setUrl(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="https://seusite.com.br"
-              className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+              className="search-input"
               disabled={loading}
             />
             <button
               onClick={analyze}
               disabled={loading || !url.trim()}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-medium px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
+              className="search-btn"
             >
               {loading ? 'Analisando…' : 'Analisar'}
             </button>
           </div>
-          <p className="text-xs text-gray-400 mt-3">
-            Análise completa: SEO · Copy · UX · Psicologia · Leis UX · PageSpeed · Quick Wins
-          </p>
         </div>
 
-        {/* Loading state */}
+        {/* ── Loading ── */}
         {loading && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-10 text-center">
-            <div className="inline-block w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4" />
-            <p className="text-gray-600 font-medium">Analisando a página…</p>
-            <p className="text-gray-400 text-sm mt-1">
-              Carregando conteúdo, coletando dados de performance e gerando relatório
+          <div className="loading-state">
+            <div className="spinner" />
+            <p className="loading-title">Analisando a página</p>
+            <p className="loading-sub">
+              Coletando dados de SEO, UX, copy e performance…<br />
+              Isso pode levar até 30 segundos.
             </p>
           </div>
         )}
 
-        {/* Error */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-6 mb-6">
-            <p className="text-red-700 font-medium">Erro ao analisar</p>
-            <p className="text-red-600 text-sm mt-1">{error}</p>
+        {/* ── Error ── */}
+        {error && !loading && (
+          <div className="error-card">
+            <p className="error-title">Não foi possível analisar</p>
+            <p className="error-msg">{error}</p>
           </div>
         )}
 
-        {/* Results */}
+        {/* ── Results ── */}
         {report && !loading && (
-          <div className="space-y-6">
-            {/* Screenshot + meta */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Screenshot da página</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{url}</p>
+          <div className="results">
+
+            {/* Screenshot */}
+            <div className="screenshot-card">
+              <div className="screenshot-meta">
+                <div className="meta-info">
+                  <p className="meta-url">{url}</p>
+                  {usage && (
+                    <p className="meta-cost">
+                      {(usage.inputTokens + usage.outputTokens).toLocaleString()} tokens
+                      {' · '}~R${(((usage.inputTokens * 0.000003) + (usage.outputTokens * 0.000015)) * 5.5).toFixed(2)}
+                    </p>
+                  )}
                 </div>
-                {usage && (
-                  <div className="text-right">
-                    <p className="text-xs text-gray-400">
-                      Tokens: {(usage.inputTokens + usage.outputTokens).toLocaleString()}
-                    </p>
-                    <p className="text-xs text-gray-300">
-                      ~R${(((usage.inputTokens * 0.000003) + (usage.outputTokens * 0.000015)) * 5.5).toFixed(2)}
-                    </p>
-                  </div>
-                )}
+                <button onClick={copyReport} className="copy-btn">
+                  Copiar relatório
+                </button>
               </div>
               {screenshotUrl && (
                 <img
                   src={screenshotUrl}
                   alt="Screenshot da página analisada"
-                  className="w-full h-64 object-cover object-top"
+                  className="screenshot-img"
                   onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
                 />
               )}
             </div>
 
             {/* Report */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                <h3 className="font-semibold text-gray-800">Relatório CRO</h3>
-                <button
-                  onClick={copyReport}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
-                >
-                  Copiar
-                </button>
+            <div className="report-card">
+              <div className="report-header">
+                <span className="report-header-label">Relatório de Análise CRO</span>
+                <button onClick={copyReport} className="copy-btn">Copiar</button>
               </div>
-              <div className="px-6 py-6 report-content">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {report}
-                </ReactMarkdown>
+              <div className="report-body report-content">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{report}</ReactMarkdown>
               </div>
             </div>
+
           </div>
         )}
 
-        {/* Empty state */}
-        {!report && !loading && !error && (
-          <div className="text-center py-16 text-gray-400">
-            <div className="text-5xl mb-4">🔍</div>
-            <p className="text-lg font-medium text-gray-500">Cole uma URL acima para começar</p>
-            <p className="text-sm mt-2">
-              O relatório inclui análise de SEO, copy, UX, psicologia de conversão e performance
-            </p>
-          </div>
-        )}
       </main>
     </div>
   )

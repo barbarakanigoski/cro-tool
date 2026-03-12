@@ -200,7 +200,7 @@ ${pagespeedSection}
 Execute a análise completa seguindo o formato obrigatório do relatório.`
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-5',
+      model: 'claude-sonnet-4-5-20251001',
       max_tokens: 8192,
       system: CRO_SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userMessage }],
